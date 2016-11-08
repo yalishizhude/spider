@@ -1,0 +1,19 @@
+{
+  "name": "spider",
+  "version": "1.0.0",
+  "description": "爬虫分析工具",
+  "main": "app.js",
+  "dependencies": {
+    "jquery": "^3.1.1",
+    "jsdom": "^9.8.3",
+    "mongoose": "^4.6.5",
+    "q": "^1.4.1",
+    "request": "^2.76.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}
