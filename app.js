@@ -1,7 +1,12 @@
+// 发送http请求
 var request = require('request');
+// 连接mongodb
 var mongoose = require('mongoose');
+// 用来解析html
 var jsdom = require('jsdom');
+// promise模块
 var q = require('q');
+mongoose.Promise = q.Promise;
 mongoose.connect('mongodb://localhost:27017/lagou');
 mongoose.connection.on('connected', function() {
   console.log('Mongoose connection successful.');
@@ -17,12 +22,15 @@ var pSchema = mongoose.Schema({
 });
 var datestamp = (new Date()).toISOString().split('T').shift().replace(/-/g, '_');
 var pModel = mongoose.model('position' + datestamp, pSchema);
-var random = 1000 * 5 * Math.random();
+//设置随机时间 0~10秒，防止被反爬虫发现
+var random = 1000 * 10 * Math.random();
+//关键词
 var keyword = '前端';
 var history = [];
 
 function query(pn) {
   pn = pn || 1;
+  //薪水25k-50k
   request('http://www.lagou.com/jobs/positionAjax.json?px=default&yx=25k-50k&needAddtionalResult=false', {
     method: 'POST',
     form: {
@@ -50,6 +58,7 @@ function query(pn) {
       jobDef.push(def.promise);
       if (item.positionName.indexOf(keyword) > -1 && history.indexOf(item.positionId) < 0) {
         history.push(item.positionId);
+        // 模拟真实用户操作，防止被反爬虫封IP
         setTimeout(function(position) {
           queryById(position).then(function(job) {
             var position = new pModel(job);
@@ -68,6 +77,7 @@ function query(pn) {
     })
     pn++;
     q.all(jobDef).then(function() {
+      // 模拟真实用户操作，防止被反爬虫封IP
       if (pn * pageSize <= total) setTimeout(query(pn), random);
       else console.log('抓取完毕,总共%s条数据', total);
     });
@@ -79,6 +89,7 @@ function queryById(position) {
   jsdom.env('http://www.lagou.com/jobs/' + position.positionId + '.html', [require('jquery')],
     function(err, window) {
       if (err) console.error(err);
+      //利用jquery解析dom
       var $ = require('jquery')(window)
       position.resposibility = [];
       position.request = [];
@@ -102,16 +113,33 @@ function queryById(position) {
     });
   return def.promise;
 }
+/*
+程序入口
+先注释step2，只执行step1，进行数据入库
+再注释step1，只执行step2，查看分析结果
+ */
+/*
+step1: 数据入库
+*/
 // pModel.remove(query);
-pModel.find({request: /angular/ig}).exec(function(err, data) {
-  console.log('angular: %s', data.length);
-});
-pModel.find({request: /react/ig}).exec(function(err, data) {
-  console.log('react: %s', data.length);
-});
-pModel.find({request: /vue/ig}).exec(function(err, data) {
-  console.log('vue: %s', data.length);
-});
-pModel.find({request: /jquery/ig}).exec(function(err, data) {
-  console.log('jquery: %s', data.length);
-});
+
+/*
+step2：分析结果
+ */
+// pModel.find({}).exec(function(err, data) {
+//   if(err) throw err;
+//   var total = data.length;
+//   console.log('查询日期：%s\n关键词：前端\t25k-50k\t共%s条数据', datestamp, total);
+//   pModel.find({request: /angular/ig}).exec(function(err, data) {
+//     console.log('angular:\t%s\t%s%', data.length, (100*data.length/total).toFixed(2));
+//   });
+//   pModel.find({request: /react/ig}).exec(function(err, data) {
+//     console.log('react  :\t%s\t%s%', data.length, (100*data.length/total).toFixed(2));
+//   });
+//   pModel.find({request: /vue/ig}).exec(function(err, data) {
+//     console.log('vue    :\t%s\t%s%', data.length, (100*data.length/total).toFixed(2));
+//   });
+//   pModel.find({request: /jquery/ig}).exec(function(err, data) {
+//     console.log('jquery :\t%s\t%s%', data.length, (100*data.length/total).toFixed(2));
+//   });
+// })
